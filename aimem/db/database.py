@@ -34,6 +34,13 @@ def get_engine():
         connect_args = {}
         if url.startswith("sqlite"):
             connect_args["check_same_thread"] = False
+            if "///" in url:
+                import os
+                db_path = url.split("///", 1)[1]
+                if not db_path.startswith(":memory:"):
+                    db_dir = os.path.dirname(db_path)
+                    if db_dir:
+                        os.makedirs(db_dir, exist_ok=True)
 
         _engine = create_engine(
             url,

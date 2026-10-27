@@ -16,6 +16,8 @@ from aimem.api.auth import auth_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
+    import os
+    os.makedirs("data", exist_ok=True)
     create_tables()
     yield
 
