@@ -81,7 +81,7 @@ export default function DemoPage() {
         const res = await fetch(`${API}/conversations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agent_id: "demo", user_id: String(user.id) }),
+          body: JSON.stringify({ agent_id: "demo", user_id: String(user?.id || "demo") }),
         });
         const data = await res.json();
         setConversationId(data.id);
