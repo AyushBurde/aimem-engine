@@ -23,28 +23,30 @@ def _get_gemini_client():
 
 
 def _get_openai_client():
-    global _openai_client
-    if _openai_client is None:
-        try:
-            from openai import OpenAI
-        except ImportError:
-            raise ImportError(
-                "The 'openai' package is required to use OpenAI or OpenRouter. "
-                "Install it with: pip install openai"
-            )
-        settings = get_settings()
-        api_key = settings.OPENAI_API_KEY or settings.OPENROUTER_API_KEY
-        base_url = settings.OPENAI_BASE_URL
-        if settings.LLM_PROVIDER == "openrouter" and not base_url:
-            base_url = "https://openrouter.ai/api/v1"
-        _openai_client = OpenAI(api_key=api_key, base_url=base_url)
-    return _openai_client
+    from aimem.config import current_openai_key
+    req_key = current_openai_key.get()
+    try:
+        from openai import OpenAI
+    except ImportError:
+        raise ImportError(
+            "The 'openai' package is required to use OpenAI or OpenRouter. "
+            "Install it with: pip install openai"
+        )
+    settings = get_settings()
+    api_key = req_key or settings.OPENAI_API_KEY or settings.OPENROUTER_API_KEY
+    if not api_key:
+        raise ValueError("OpenAI API key is required. Please provide it in the demo top bar.")
+    base_url = settings.OPENAI_BASE_URL
+    if settings.LLM_PROVIDER == "openrouter" and not base_url:
+        base_url = "https://openrouter.ai/api/v1"
+    return OpenAI(api_key=api_key, base_url=base_url)
 
 
 def generate_text(prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.1) -> str:
     """Generate free-form text from any configured LLM provider."""
+    from aimem.config import current_provider
     settings = get_settings()
-    provider = settings.LLM_PROVIDER.lower()
+    provider = (current_provider.get() or settings.LLM_PROVIDER).lower()
 
     if provider == "gemini":
         from google.genai import types
@@ -80,8 +82,9 @@ def generate_text(prompt: str, system_prompt: Optional[str] = None, temperature:
 
 def generate_json(prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.1) -> Any:
     """Generate parsed JSON from any configured LLM provider."""
+    from aimem.config import current_provider
     settings = get_settings()
-    provider = settings.LLM_PROVIDER.lower()
+    provider = (current_provider.get() or settings.LLM_PROVIDER).lower()
 
     if provider == "gemini":
         from google.genai import types

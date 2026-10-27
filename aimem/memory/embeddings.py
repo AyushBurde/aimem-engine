@@ -15,13 +15,15 @@ _local_model = None
 
 
 def _ensure_client():
-    """Configure Gemini API client on first use."""
-    global _client
-    if _client is None:
-        from google import genai
-        settings = get_settings()
-        _client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    return _client
+    """Configure Gemini API client on first use or with per-request key."""
+    from google import genai
+    from aimem.config import current_gemini_key, get_settings
+    key = current_gemini_key.get() or get_settings().GEMINI_API_KEY
+    if not key:
+        raise ValueError(
+            "Gemini API key is required. Please provide your Gemini API key in the demo top bar."
+        )
+    return genai.Client(api_key=key)
 
 
 def _get_local_model():
@@ -35,8 +37,12 @@ def _get_local_model():
 
 def embed_text(text: str) -> List[float]:
     """Convert a single text into a vector."""
+    from aimem.config import current_provider
     settings = get_settings()
-    provider = getattr(settings, "EMBEDDING_PROVIDER", "gemini").lower()
+    provider = (current_provider.get() or getattr(settings, "EMBEDDING_PROVIDER", "gemini")).lower()
+    if provider == "openrouter":
+        # OpenRouter users usually use sentence-transformers or openai
+        provider = "local" if not settings.OPENAI_API_KEY else "openai"
 
     if provider == "gemini":
         from google.genai import types

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 
-const API = "http://127.0.0.1:8000/api";
+const API = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000") + "/api";
 
 type Memory = {
   id: number;
@@ -35,7 +35,26 @@ export default function DemoPage() {
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [consolidation, setConsolidation] = useState<ConsolidationCluster | null>(null);
+  const [provider, setProvider] = useState<string>("gemini");
+  const [apiKey, setApiKey] = useState<string>("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem("aimem_demo_api_key");
+    const savedProvider = localStorage.getItem("aimem_demo_provider");
+    if (savedKey) setApiKey(savedKey);
+    if (savedProvider) setProvider(savedProvider);
+  }, []);
+
+  const handleKeyChange = (val: string) => {
+    setApiKey(val);
+    localStorage.setItem("aimem_demo_api_key", val);
+  };
+
+  const handleProviderChange = (val: string) => {
+    setProvider(val);
+    localStorage.setItem("aimem_demo_provider", val);
+  };
 
   // Auth guard: redirect to login if not logged in
   useEffect(() => {
@@ -92,7 +111,13 @@ export default function DemoPage() {
     try {
       const res = await fetch(
         `${API}/memories/consolidate?conversation_id=${conversationId}`,
-        { method: "POST" }
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(apiKey ? { "X-Provider": provider, "X-Api-Key": apiKey.trim() } : {}),
+          },
+        }
       );
       const result = await res.json();
 
@@ -138,11 +163,24 @@ export default function DemoPage() {
       console.error("Consolidation error:", err);
       setConsolidation(null);
     }
-  }, [conversationId]);
+  }, [conversationId, apiKey, provider]);
 
   // Send message
   async function handleSend() {
     if (!input.trim() || !conversationId) return;
+
+    if (!apiKey.trim()) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: input },
+        {
+          role: "assistant",
+          content: `Please enter your ${provider.toUpperCase()} API key in the top bar to run the demo.`,
+        },
+      ]);
+      setInput("");
+      return;
+    }
 
     const userMsg: Message = { role: "user", content: input };
     setMessages((prev) => [...prev, userMsg]);
@@ -152,13 +190,29 @@ export default function DemoPage() {
     try {
       const res = await fetch(`${API}/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Provider": provider,
+          "X-Api-Key": apiKey.trim(),
+        },
         body: JSON.stringify({
           message: input,
           conversation_id: conversationId,
         }),
       });
       const result = await res.json();
+
+      if (!res.ok) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: `API Error: ${result.detail || "Invalid or rejected API key. Please check your credentials."}`,
+          },
+        ]);
+        setLoading(false);
+        return;
+      }
 
       let reply = "";
 
@@ -232,11 +286,84 @@ export default function DemoPage() {
       {/* ── LEFT: CHAT ── */}
       <div className="flex-1 flex flex-col border-r border-white/10">
         <div className="px-6 py-4 border-b border-white/10">
-          <h1 className="text-lg font-semibold">Live Demo</h1>
-          <p className="text-xs text-white/40 mt-1">
-            Type anything — the engine extracts, recalls, and consolidates
-            memories automatically
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h1 className="text-lg font-semibold">Live Demo</h1>
+              <p className="text-xs text-white/40 mt-1">
+                Type anything — the engine extracts, recalls, and consolidates
+                memories automatically
+              </p>
+            </div>
+          </div>
+
+          {/* Developer API Key Toolbar */}
+          <div className="mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 flex flex-col md:flex-row md:items-center justify-between gap-3 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-white/40 uppercase tracking-wider text-[11px]">Provider</span>
+              <select
+                value={provider}
+                onChange={(e) => handleProviderChange(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded px-2 py-1 text-white text-xs outline-none focus:border-white/30 cursor-pointer"
+              >
+                <option value="gemini" className="bg-[#1a1a1a]">Google Gemini (Free Tier)</option>
+                <option value="openai" className="bg-[#1a1a1a]">OpenAI (GPT-4o)</option>
+                <option value="openrouter" className="bg-[#1a1a1a]">OpenRouter (Claude / Open Models)</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <span className="text-white/40 uppercase tracking-wider text-[11px]">API Key</span>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => handleKeyChange(e.target.value)}
+                placeholder={provider === "gemini" ? "AIzaSy..." : provider === "openrouter" ? "sk-or-..." : "sk-..."}
+                className="bg-transparent text-xs text-white placeholder:text-white/20 flex-1 outline-none font-mono"
+              />
+              {apiKey && (
+                <button
+                  type="button"
+                  onClick={() => handleKeyChange("")}
+                  className="text-[11px] text-white/40 hover:text-white px-1.5 py-0.5 rounded bg-white/5 transition"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            <div className="text-[11px] text-white/40 border-t md:border-t-0 md:border-l md:border-white/10 pt-1 md:pt-0 md:pl-3 whitespace-nowrap">
+              {provider === "gemini" && (
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-emerald-400/80 hover:text-emerald-300 underline"
+                >
+                  Get free key ↗
+                </a>
+              )}
+              {provider === "openai" && (
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-400/80 hover:text-blue-300 underline"
+                >
+                  OpenAI dashboard ↗
+                </a>
+              )}
+              {provider === "openrouter" && (
+                <a
+                  href="https://openrouter.ai/keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-purple-400/80 hover:text-purple-300 underline"
+                >
+                  OpenRouter keys ↗
+                </a>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">

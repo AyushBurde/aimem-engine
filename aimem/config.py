@@ -7,11 +7,17 @@ Two ways to configure:
 """
 
 import os
+import contextvars
 from typing import Optional
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 load_dotenv()
+
+current_provider: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("current_provider", default=None)
+current_gemini_key: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("current_gemini_key", default=None)
+current_openai_key: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("current_openai_key", default=None)
+current_openrouter_key: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("current_openrouter_key", default=None)
 
 
 class Settings(BaseSettings):
