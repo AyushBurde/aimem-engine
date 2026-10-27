@@ -9,3 +9,5 @@ sentence-transformers
 numpy
 faiss-cpu
 openai>=1.0.0
+bcrypt
+pyjwt
