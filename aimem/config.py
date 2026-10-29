@@ -26,12 +26,12 @@ class Settings(BaseSettings):
     # ── LLM Provider Configuration ───────────────────────
     LLM_PROVIDER: str = "gemini"               # "gemini" | "openai" | "openrouter"
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
     
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: Optional[str] = None      # e.g., "https://openrouter.ai/api/v1"
     OPENROUTER_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-2.5-flash"        # Auto-set to gpt-4o-mini or claude
+    LLM_MODEL: str = "gemini-3.8-flash"        # Auto-set to gpt-4o-mini or claude
     EXTRACTION_TEMPERATURE: float = 0.1
 
     # ── Embeddings ───────────────────────────────────────
@@ -76,13 +76,13 @@ class Settings(BaseSettings):
                     self.EMBEDDING_PROVIDER = "openai"
                     self.EMBEDDING_MODEL_NAME = "text-embedding-3-small"
                     self.EMBEDDING_DIMENSION = 1536
-                if self.LLM_MODEL == "gemini-2.5-flash":
+                if self.LLM_MODEL == "gemini-3.8-flash":
                     self.LLM_MODEL = "gpt-4o-mini"
             elif self.OPENROUTER_API_KEY:
                 self.LLM_PROVIDER = "openrouter"
                 if not self.OPENAI_BASE_URL:
                     self.OPENAI_BASE_URL = "https://openrouter.ai/api/v1"
-                if self.LLM_MODEL == "gemini-2.5-flash":
+                if self.LLM_MODEL == "gemini-3.8-flash":
                     self.LLM_MODEL = "anthropic/claude-3.5-sonnet"
 
     class Config:
