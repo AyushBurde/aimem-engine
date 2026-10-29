@@ -29,11 +29,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Allow Next.js frontend (port 3000) to call this API
+# Allow Next.js frontend (port 3000 / Vercel) to call this API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

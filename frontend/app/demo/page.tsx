@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 
-const API = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000") + "/api";
+const API = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "") + "/api";
 
 type Memory = {
   id: number;
