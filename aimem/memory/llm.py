@@ -21,9 +21,9 @@ _openai_client = None
 
 # ── Gemini fallback chain (tried in order if overloaded) ──
 GEMINI_FALLBACK_MODELS = [
-    "gemini-3.8-flash-lite",   # Primary: lite = less traffic, faster
-    "gemini-3.8-flash",        # Full flash if lite is down
-    "gemini-2.0-flash",        # Older but very stable
+    "gemini-3.5-flash-lite",   # Primary: ultra-fast, high throughput, low congestion
+    "gemini-3.5-flash",        # Slightly heavier but still fast
+    "gemini-3.6-flash",        # Stable mid-tier
 ]
 
 
