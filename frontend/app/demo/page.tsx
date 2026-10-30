@@ -188,6 +188,9 @@ export default function DemoPage() {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
       const res = await fetch(`${API}/chat`, {
         method: "POST",
         headers: {
@@ -199,7 +202,9 @@ export default function DemoPage() {
           message: input,
           conversation_id: conversationId,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const result = await res.json();
 
       if (!res.ok) {
@@ -257,10 +262,16 @@ export default function DemoPage() {
 
       // Auto-trigger consolidation after each message
       setTimeout(() => autoConsolidate(), 500);
-    } catch (err) {
+    } catch (err: any) {
+      const isTimeout = err?.name === "AbortError";
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Error: Could not reach the backend." },
+        {
+          role: "assistant",
+          content: isTimeout
+            ? "⏱️ Request timed out (60s). The AI model may be experiencing high traffic. Please try again in a moment."
+            : "Error: Could not reach the backend. The server may be waking up — try again in 30 seconds.",
+        },
       ]);
     }
 
